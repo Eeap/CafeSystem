@@ -5,14 +5,18 @@ from selenium.webdriver import DesiredCapabilities
 from cafeSystem import cafeSystem
 
 
-options = webdriver.ChromeOptions()
-options.add_argument('headless')
-options.add_argument('lang=ko_KR')
-chromedriver_path = "chromedriver"
-options.add_argument('headless')
-caps = DesiredCapabilities().CHROME
-caps["pageLoadStrategy"] = "none"
-cafe = cafeSystem(webdriver.Chrome(os.path.join(os.getcwd(), chromedriver_path), options=options))
-place = cafe.dataInput()
-data = cafe.searchMain(place)
-pprint(data)
+def makeOptions(webdriver):
+    options = webdriver.ChromeOptions()
+    options.add_argument('headless')
+    options.add_argument('lang=ko_KR')
+    options.add_argument('headless')
+    return options
+
+if __name__=="__main__":
+    chromedriver_path = "chromedriver"
+    caps = DesiredCapabilities().CHROME
+    caps["pageLoadStrategy"] = "none"
+    cafe = cafeSystem(webdriver.Chrome(os.path.join(os.getcwd(), chromedriver_path), options= makeOptions(webdriver)))
+    place = cafe.dataInput()
+    data = cafe.searchMain(place)
+    pprint(data)

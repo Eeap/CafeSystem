@@ -5,8 +5,6 @@ from bs4 import BeautifulSoup
 from selenium.common import ElementNotInteractableException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
-
-
 class cafeSystem:
     def __init__(self, driver):
         self.driver = driver
@@ -18,11 +16,9 @@ class cafeSystem:
         self.photoType = '.cont_menu > .list_menu > .photo_type'
         self.menuName = '.info_menu > .loss_word'
         self.menuPrice = '.info_menu > .price_menu'
-        self.titleList = []
-
-    def getTitleList(self):
-        return self.titleList
-
+        self.dataList = '아메리카노|카페|라떼|스무디|주스|쥬스|티|차|콜드|아이스|요구르트|브루|에스프레소|모카|ICE|HOT|얼그레이|프라푸치노|커피|블렌디드|핫|카푸치노|돌체|요거트'
+        pd.set_option('display.max_rows', None)
+        pd.set_option('display.max_columns', 4)
     def dataInput(self):
         place = input()
         return place
@@ -31,34 +27,29 @@ class cafeSystem:
         self.driver.implicitly_wait(4)
         self.driver.get('https://map.kakao.com/')
         query = place + " 카페"
-        path = os.path.join(os.getcwd(), query + '.csv')
-        filename = query + ".csv"
+        path = os.path.join(os.getcwd()+"/data/", query + '.csv')
+        filename = os.path.join(os.getcwd()+"/data/",query + ".csv")
         if os.path.exists(path):
-            pd.set_option('display.max_rows', None)
-            pd.set_option('display.max_columns', None)
-            data = pd.read_csv(filename)
-            sortData = data.sort_values(by='price')
-            printData = sortData[sortData['menu'].str.contains(
-                '아메리카노|카페|라떼|스무디|주스|쥬스|티|차|콜드|아이스|요구르트|브루|에스프레소|모카|ICE|HOT|얼그레이|프라푸치노|커피|블렌디드|핫|카푸치노|돌체')]
+            printData = self.data_read(filename)
             self.driver.quit()
             return printData
-
             # csv읽어서 정렬해서 출력
         else:
-            self.search(query)
-            pd.set_option('display.max_rows', None)
-            pd.set_option('display.max_columns', None)
-            data = pd.read_csv(filename)
-            sortData = data.sort_values(by='price')
-            printData = sortData[sortData['menu'].str.contains(
-                '아메리카노|카페|라떼|스무디|주스|쥬스|티|차|콜드|아이스|요구르트|브루|에스프레소|모카|ICE|HOT|얼그레이|프라푸치노|커피|블렌디드|핫|카푸치노|돌체')]
+            self.search(query,filename)
+            printData = self.data_read(filename)
             self.driver.quit()
             return printData
 
-    def search(self, query):
-        f = open(query + ".csv", 'w')
+    def data_read(self, filename):
+        data = pd.read_csv(filename)
+        sortData = data.sort_values(by='price')
+        printData = sortData[sortData['menu'].str.contains(self.dataList)]
+        return printData
+
+    def search(self, query,filename):
+        f = open(filename, 'w')
         filewrite = csv.writer(f)
-        filewrite.writerow(['menu', 'price', 'title'])
+        filewrite.writerow(['menu', 'price', 'title','url'])
         searchQuery = self.driver.find_element(By.XPATH, self.queryXpath)
         searchQuery.send_keys(query)
         self.driver.find_element(By.XPATH, self.submitXpath).send_keys(Keys.ENTER)
@@ -75,7 +66,7 @@ class cafeSystem:
         try:
             self.driver.find_element(By.XPATH, '//*[@id="info.search.place.more"]').send_keys(Keys.ENTER)
             sleep(2)
-
+            # 1페이지부터 5페이지까지 크롤링
             for idx in range(2, 6):
                 self.driver.find_element(By.XPATH, '//*[@id="info.search.page.no' + str(idx) + '"]').send_keys(
                     Keys.ENTER)
@@ -103,7 +94,7 @@ class cafeSystem:
         page = self.driver.page_source
         soup = BeautifulSoup(page, "html.parser")
         title = soup.find('title').text.split("|")[0].strip()
-        self.titleList.append(title)
+        url = soup.head.find("meta",{"property":"og:url"}).get("content")
         menuItem = soup.select(self.menuType)
         nophotoItem = soup.select(self.nophotoType)
         photoItem = soup.select(self.photoType)
@@ -128,7 +119,7 @@ class cafeSystem:
                 if price:
                     if self.isInt(price):
                         print(price, item[0])
-                        filewrite.writerow([item[0], int(price), title])
+                        filewrite.writerow([item[0], int(price), title, url])
         self.driver.close()
         self.driver.switch_to.window(self.driver.window_handles[0])
 
