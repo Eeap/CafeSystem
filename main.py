@@ -1,21 +1,22 @@
 import json
 import os
-import pandas as pd
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from cafeSystem import cafeSystem
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 app = FastAPI()
-# app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 #chrome 옵션 설정
 def makeOptions(webdriver):
     options = webdriver.ChromeOptions()
     options.add_argument('headless')
     options.add_argument('lang=ko_KR')
+    options.add_argument("disable-gpu")
+    options.add_argument("disable-infobars")
+    options.add_argument("--disable-extensions")
     return options
 
 app = FastAPI()
@@ -25,13 +26,10 @@ async def mainPage(request:Request):
 
 @app.get("/get")
 async def getData(request: Request,place:str):
-    chromedriver_path = "chromedriver"
     caps = DesiredCapabilities().CHROME
     caps["pageLoadStrategy"] = "none"
-    cafe = cafeSystem(webdriver.Chrome(os.path.join(os.getcwd(), chromedriver_path), options= makeOptions(webdriver)))
+    cafe = cafeSystem(webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=makeOptions(webdriver)))
     # place = cafe.dataInput()
-    result = cafe.searchMain(place)
-    data_list = pd.DataFrame(result, columns=['menu','price','title','url']).to_json(force_ascii=False)
+    data_list = cafe.searchMain(place)
     return templates.TemplateResponse("cafe.html",{"request":request,
-                                                   "data":json.loads(data_list),
-                                                   "size":len(result)})
+                                                   "data":json.loads(data_list)})
