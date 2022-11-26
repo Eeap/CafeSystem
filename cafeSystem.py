@@ -1,10 +1,10 @@
 import os, csv
 from time import sleep
-import pandas as pd
 from bs4 import BeautifulSoup
 from selenium.common import ElementNotInteractableException
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
+from dataProcessing import dataProcess
 class cafeSystem:
     def __init__(self, driver):
         self.driver = driver
@@ -16,11 +16,6 @@ class cafeSystem:
         self.photoType = '.cont_menu > .list_menu > .photo_type'
         self.menuName = '.info_menu > .loss_word'
         self.menuPrice = '.info_menu > .price_menu'
-        self.dataList = '아메리카노|카페|라떼|스무디|주스|쥬스|티|차|콜드' \
-                        '|아이스|요구르트|브루|에스프레소|모카|ICE|HOT|얼그레이' \
-                        '|프라푸치노|커피|블렌디드|핫|카푸치노|돌체|요거트|시그니처|카라멜|에이드|마끼아또'
-        pd.set_option('display.max_rows', None)
-        pd.set_option('display.max_columns', 4)
     # 장소를 입력하는 함수
     def dataInput(self):
         place = input()
@@ -35,21 +30,15 @@ class cafeSystem:
         filename = os.path.join(os.getcwd()+"/data/",query + ".csv")
         #파일이 이미 존재하는 경우 재크롤링을 하지 않음
         if os.path.exists(path):
-            printData = self.dataRead(filename)
+            dataJson = dataProcess(filename).dataRead()
             self.driver.quit()
-            return printData
+            return dataJson
         else:
             #검색 후 저장된 데이터를 출력
             self.search(query,filename)
-            printData = self.dataRead(filename)
+            dataJson = dataProcess(filename).dataRead()
             self.driver.quit()
-            return printData
-    #csv파일의 데이터를 읽어오는 함수
-    def dataRead(self, filename):
-        data = pd.read_csv(filename)
-        sortData = data.sort_values(by='price')
-        printData = sortData[sortData['menu'].str.contains(self.dataList)]
-        return printData
+            return dataJson
     #실제로 검색과 저장을 하는 함수
     def search(self, query,filename):
         f = open(filename, 'w')
@@ -131,7 +120,6 @@ class cafeSystem:
                     price = item[1]
                 if price:
                     if self.isInt(price):
-                        print(price, item[0])
                         #데이터를 csv에 저장
                         filewrite.writerow([item[0], int(price), title, url])
         self.driver.close()
